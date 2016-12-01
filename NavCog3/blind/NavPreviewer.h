@@ -23,6 +23,7 @@
 #import <Foundation/Foundation.h>
 #import "NavNavigator.h"
 
+
 @protocol NavPreviewerDelegate
 - (double) turnAction;
 - (BOOL) forwardAction;
@@ -39,10 +40,22 @@
 @property id<NavPreviewerDelegate> delegate;
 @property NSTimer *autoTimer;
 
+//jpvg
+@property (nonatomic) float pitch;
+@property (nonatomic) float turnAction;
+@property (nonatomic) Boolean triggerStep;
+@property (nonatomic) Boolean stopSteps;
+@property (nonatomic) Boolean isSpeaking;
+@property (nonatomic) float pitchBaseline;
+@property (nonatomic) float newTime;
+
+
 
 - (void)manualTurn:(double)angle;
 - (void)manualGoForward:(double)distance;
 - (void)manualLocation:(HLPLocation*)loc;
 - (void)manualGoFloor:(double)floor;
+- (void)setPitch:(float) pitch withTurnAction:(float)turn;
+- (BOOL)checkStep;
 
 @end

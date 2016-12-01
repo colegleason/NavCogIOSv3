@@ -96,8 +96,76 @@
     longPressGesture2.minimumPressDuration = 1.0;
     longPressGesture2.numberOfTouchesRequired = 2;
     [self.navigationController.navigationBar addGestureRecognizer:longPressGesture2];
+    /*
+    //In order to enable detection of gestures, but also panning and zomming the map when necessary
+    UITapGestureRecognizer* doubleTapNav = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleEnableGestures:)];
+    doubleTapNav.numberOfTapsRequired=2;
+    [self.navigationController.navigationBar addGestureRecognizer:doubleTapNav];
+    
+    UISwipeGestureRecognizer * swipeLeft=[[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(swipeLeft:)];
+    swipeLeft.direction=UISwipeGestureRecognizerDirectionLeft;
+    [self.view addGestureRecognizer:swipeLeft];
+    
+    UISwipeGestureRecognizer * swipeRight=[[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(swipeRight:)];
+    swipeRight.direction=UISwipeGestureRecognizerDirectionRight;
+    [self.view addGestureRecognizer:swipeRight];
+    
+    UISwipeGestureRecognizer * swipeFront=[[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(swipeFront:)];
+    swipeFront.direction=UISwipeGestureRecognizerDirectionUp;
+    [self.view addGestureRecognizer:swipeFront];
+    
+    UISwipeGestureRecognizer * swipeBack=[[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(swipeBack:)];
+    swipeBack.direction=UISwipeGestureRecognizerDirectionDown;
+    [self.view addGestureRecognizer:swipeBack];
+    
+    UITapGestureRecognizer * doubleTap=[[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(doubleTap:)];
+    doubleTap.numberOfTapsRequired=2;
+    [self.view addGestureRecognizer:doubleTap];
+    
+    UILongPressGestureRecognizer * longPress=[[UILongPressGestureRecognizer alloc]initWithTarget:self action:@selector(longPress:)];
+    longPress.minimumPressDuration=1;
+    [self.view addGestureRecognizer:longPress];
+     */
     
     [self locationChanged:nil];
+}
+
+
+//jpvg start
+-(void)swipeLeft:(UISwipeGestureRecognizer*)gestureRecognizer
+{
+    [[NavSound sharedInstance] playSuccess];
+}
+
+
+-(void)swipeRight:(UISwipeGestureRecognizer*)gestureRecognizer
+{
+    [[NavSound sharedInstance] playSuccess];
+}
+
+-(void)swipeFront:(UISwipeGestureRecognizer*)gestureRecognizer
+{
+    [[NavSound sharedInstance] playSuccess];
+}
+
+-(void)swipeBack:(UISwipeGestureRecognizer*)gestureRecognizer
+{
+    [[NavSound sharedInstance] playSuccess];
+}
+
+-(void)doubleTap:(UITapGestureRecognizer*)gestureRecognizer
+{
+    [[NavSound sharedInstance] playSuccess];
+}
+
+-(void)toggleEnableGestures:(UITapGestureRecognizer*)gestureRecognizer
+{
+    [self.webView setUserInteractionEnabled:![self.webView isUserInteractionEnabled]];
+}
+
+-(void)longPress:(UILongPressGestureRecognizer*)gestureRecognizer
+{
+    [[NavSound sharedInstance] playSuccess];
 }
 
 - (void)handleLongPressGesture:(UILongPressGestureRecognizer*)sender
@@ -340,13 +408,15 @@
     BOOL needAction = [[NSUserDefaults standardUserDefaults] boolForKey:@"preview_with_action"];
     if (!motionManager && needAction) {
         motionManager = [[CMMotionManager alloc] init];
-        motionManager.deviceMotionUpdateInterval = 0.1;
+        motionManager.deviceMotionUpdateInterval = 0.01; //jpvg changed 0.1 to 0.01
         motionQueue = [[NSOperationQueue alloc] init];
         motionQueue.maxConcurrentOperationCount = 1;
         motionQueue.qualityOfService = NSQualityOfServiceBackground;
     }
     if (needAction) {
         [motionManager startDeviceMotionUpdatesToQueue:motionQueue withHandler:^(CMDeviceMotion * _Nullable motion, NSError * _Nullable error) {
+            
+            //jpvg reusing previous turning functions
             yaws[yawsIndex] = motion.attitude.yaw;
             yawsIndex = (yawsIndex+1)%10;
             double ave = 0;
@@ -360,6 +430,11 @@
                 turnAction = 0;
             }
             
+            [previewer setPitch:motion.attitude.pitch withTurnAction:turnAction];
+            
+            //The Assessment of whether to trigger or not to trigger a step is done on the previewer
+         
+            /*
             CMAcceleration acc =  motion.userAcceleration;
             double d = sqrt(pow(acc.x, 2)+pow(acc.y, 2)+pow(acc.z, 2));
             accs[accsIndex] = d;
@@ -370,6 +445,8 @@
             }
             //NSLog(@"angle=, %f", ave);
             forwardAction = ave > 0.3;
+             
+             */
             
         }];
         

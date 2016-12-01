@@ -28,5 +28,6 @@
 + (instancetype) sharedInstance;
 - (void) playSuccess;
 - (void) vibrate;
+- (void) playStep;
 
 @end

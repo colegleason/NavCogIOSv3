@@ -23,10 +23,12 @@
 #import "NavPreviewer.h"
 #import "NavDataStore.h"
 #import "LocationEvent.h"
+#import "NavSound.h"
 
 @implementation NavPreviewer{
     
     BOOL _autoProceed;
+    BOOL _shouldTurn;
 }
 
 - (void)dealloc
@@ -37,6 +39,12 @@
 - (void)setAutoProceed:(BOOL)autoProceed
 {
     _autoProceed = autoProceed;
+    _pitch=0;
+    _pitchBaseline=0;
+    _triggerStep=false;
+    _isSpeaking=false;
+    _shouldTurn=false;
+    
     if (_autoProceed) {
         NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
         BOOL needAction = [ud boolForKey:@"preview_with_action"];
@@ -46,7 +54,8 @@
         BOOL pm = [NavDataStore sharedDataStore].previewMode;
         double ps = 1.0 / [ud doubleForKey:@"preview_speed"];
         
-        _autoTimer = [NSTimer timerWithTimeInterval:pm?ps:0.1 target:self selector:@selector(processPreview:) userInfo:nil repeats:YES];
+        //
+        _autoTimer = [NSTimer timerWithTimeInterval:pm?ps:0.1 target:self selector:@selector(processPreview:) userInfo:nil repeats:NO];
         [[NSRunLoop mainRunLoop] addTimer:_autoTimer forMode:NSDefaultRunLoopMode];
     } else {
         @autoreleasepool {
@@ -62,28 +71,33 @@
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     BOOL needAction = [ud boolForKey:@"preview_with_action"];
 
-    double turnAction = _delegate.turnAction;
-    BOOL forwardAction = _delegate.forwardAction;
+    //double turnAction = _delegate.turnAction;
+    //BOOL forwardAction = _delegate.forwardAction;
+    _newTime=0.5;
+    BOOL forwardAction = [self checkStep];
+    [[NavDataStore sharedDataStore] manualLocation:nil];
+    _autoTimer = [NSTimer scheduledTimerWithTimeInterval:_newTime target:self selector:@selector(processPreview:) userInfo:nil repeats:NO];
     //NSLog(@"angle=%f, dist=%f, floor=%f, f=%d, t=%f", _targetAngle, _targetDistance, _targetFloor, forwardAction, turnAction);
     
     if (needAction) {
-        if (fabs(_targetAngle) > 5 && turnAction != 0) {
-            if (_targetAngle < 0 && turnAction < 0) {
+        if (fabs(_targetAngle) > 5 && _turnAction != 0) {
+            if (_targetAngle < 0 && _turnAction < 0) {
                 [[NavDataStore sharedDataStore] manualTurn:_targetAngle];
                 _targetAngle = 0;
-            } else if (_targetAngle > 0 && turnAction > 0) {
+            } else if (_targetAngle > 0 && _turnAction > 0) {
                 [[NavDataStore sharedDataStore] manualTurn:_targetAngle];
                 _targetAngle = 0;
             }
         }
         
         if (!isnan(_targetDistance) && _targetDistance > 0 && forwardAction) {
-            [self manualGoForward:0.2];
-            _targetDistance -= 0.2;
+            [[NavSound sharedInstance] playStep];
+            [self manualGoForward:0.5]; //This value may be configurable to determine the size of each step. For now is half meter
+            _targetDistance -= 0.5;
             return;
         }
         
-        if (!isnan(_targetFloor) && turnAction) {
+        if (!isnan(_targetFloor) && _turnAction) {
             [self manualGoFloor:_targetFloor];
             _targetFloor = NAN;
             return;
@@ -105,6 +119,7 @@
         
         if (!isnan(_targetDistance) && _targetDistance > 0.2) {
             [self manualGoForward:0.2];
+            [[NavSound sharedInstance] playStep];
             _targetDistance -= 0.2;
             return;
         }
@@ -115,7 +130,34 @@
             return;
         }
     }
-    [[NavDataStore sharedDataStore] manualLocation:nil];
+    
+}
+
+- (BOOL)checkStep{
+    _triggerStep=false;
+    if( _pitch < _pitchBaseline-0.1 && !_stopSteps && !_isSpeaking)
+    {
+        if (_pitch<_pitchBaseline-0.7) _newTime=0.4;
+        else _newTime=1-_pitchBaseline+0.1+_pitch;
+        _triggerStep = true;
+    }
+    return _triggerStep;
+}
+
+- (void)setPitch:(float) pitch withTurnAction:(float)turn{
+    _pitch=pitch;
+    
+    //jpvg just to avoid modifying the previous code in the processPreview. It doesnt update the _turnAction here in case a turn is needed and was captured by the DeviceMotion in the ViewController
+    if (fabs(_targetAngle) > 5 && _turnAction != 0) {
+        if (_targetAngle < 0 && _turnAction < 0) {
+            _shouldTurn=true;
+        } else if (_targetAngle > 0 && _turnAction > 0) {
+            _shouldTurn=true;
+        }
+        else _turnAction=turn;
+    }
+    else _turnAction=turn;
+    
 }
 
 - (BOOL) autoProceed

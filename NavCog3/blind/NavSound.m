@@ -26,6 +26,8 @@
 
 @implementation NavSound {
     SystemSoundID successSoundID;
+    SystemSoundID stepSoundID;
+    
 }
 
 static NavSound *instance;
@@ -43,6 +45,10 @@ static NavSound *instance;
     self = [super init];
     NSURL *url = [NSURL URLWithString:@"file:///System/Library/Audio/UISounds/Modern/calendar_alert_chord.caf"];
     AudioServicesCreateSystemSoundID((__bridge CFURLRef)url,&successSoundID);
+    
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"footstep2" ofType:@"wav"];
+    NSURL* urlStep = [NSURL fileURLWithPath:path];
+    AudioServicesCreateSystemSoundID((__bridge CFURLRef)urlStep, &stepSoundID);
 
     return self;
 }
@@ -56,6 +62,11 @@ static NavSound *instance;
 -(void)vibrate
 {
     AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+}
+
+-(void)playStep
+{
+    AudioServicesPlaySystemSound(stepSoundID);
 }
 
 @end
